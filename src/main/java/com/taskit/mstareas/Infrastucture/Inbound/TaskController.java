@@ -138,4 +138,10 @@ public class TaskController {
         List<Task> tasks = getTaskHistoryUseCase.getTasksCompletedByUser(userId);
         return ResponseEntity.ok(tasks);
     }
+
+    @GetMapping("/categories")
+    @Operation(summary = "Obtener todas las categorías de tareas disponibles")
+    public ResponseEntity<List<TaskCategory>> getCategories() {
+        return ResponseEntity.ok(List.of(TaskCategory.values()));
+    }
 }
