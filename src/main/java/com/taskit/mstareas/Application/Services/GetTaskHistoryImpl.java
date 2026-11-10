@@ -27,6 +27,9 @@ public class GetTaskHistoryImpl implements GetTaskHistoryUseCase {
 
     @Override
     public List<Task> getTasksCompletedByUser(String userId) {
-        return taskRepository.findByAssigneeAndStatus(userId, TaskStatus.COMPLETED);
+        List<Task> completed = taskRepository.findByAssigneeAndStatus(userId, TaskStatus.COMPLETED);
+        List<Task> semiCompleted = taskRepository.findByAssigneeAndStatus(userId, TaskStatus.SEMI_COMPLETED);
+        completed.addAll(semiCompleted);
+        return completed;
     }
 }

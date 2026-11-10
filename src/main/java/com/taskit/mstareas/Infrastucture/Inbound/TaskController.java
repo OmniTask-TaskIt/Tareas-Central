@@ -30,7 +30,8 @@ public class TaskController {
     private final GetTaskFeedUseCase getTaskFeedUseCase;
     private final GetTaskHistoryUseCase getTaskHistoryUseCase;
     private final CompleteTaskUseCase completeTaskUseCase;
- 
+    private final GetTaskStatusUseCase getTaskStatusUseCase;
+
     @GetMapping("/health")
     @Operation(summary = "Verificar salud del servicio")
     public Map<String, String> health() {
@@ -98,6 +99,13 @@ public class TaskController {
     public ResponseEntity<Task> completeTask(@PathVariable String taskId, @RequestBody CompleteTaskRequestDTO request) {
         Task task = completeTaskUseCase.approveCompletion(taskId, request.userId());
         return ResponseEntity.ok(task);
+    }
+
+    @GetMapping("/{taskId}/status")
+    @Operation(summary = "Consultar el estado de completitud de la tarea", description = "Muestra qué usuarios han aprobado la finalización")
+    public ResponseEntity<TaskCompletionStatusDTO> getTaskStatus(@PathVariable String taskId) {
+        TaskCompletionStatusDTO status = getTaskStatusUseCase.getTaskStatus(taskId);
+        return ResponseEntity.ok(status);
     }
  
     @GetMapping("/search")

@@ -20,8 +20,8 @@ public class CompleteTaskImpl implements CompleteTaskUseCase {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
 
-        if (task.getTaskStatus() != TaskStatus.ASSIGNED) {
-            throw new IllegalStateException("Task must be in ASSIGNED status to be completed");
+        if (task.getTaskStatus() != TaskStatus.ASSIGNED && task.getTaskStatus() != TaskStatus.SEMI_COMPLETED) {
+            throw new IllegalStateException("Task must be in ASSIGNED or SEMI_COMPLETED status to be completed");
         }
 
         boolean isOwner = userId.equals(task.getTaskOwner());
@@ -41,6 +41,8 @@ public class CompleteTaskImpl implements CompleteTaskUseCase {
         if (task.isOwnerApproval() && task.isAssigneeApproval()) {
             task.setTaskStatus(TaskStatus.COMPLETED);
             taskEventPublisher.deleteChat(taskId);
+        } else if (task.isOwnerApproval() || task.isAssigneeApproval()) {
+            task.setTaskStatus(TaskStatus.SEMI_COMPLETED);
         }
 
         return taskRepository.save(task);
