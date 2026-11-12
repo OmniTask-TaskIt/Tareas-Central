@@ -17,7 +17,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitConfig {
-
+// --- AITA ---
+    public static final String AITA_EXCHANGE = "taskit.events";
     // Exchanges
     public static final String TASK_EXCHANGE = "task.exchange";
     public static final String CHAT_EXCHANGE = "chat.exchange";
@@ -29,11 +30,19 @@ public class RabbitConfig {
     public static final String CHAT_DELETE_QUEUE = "chat.delete.queue";
     public static final String PAYMENT_NOTIFY_QUEUE = "payment.notify.queue";
 
+
+    public static final String ROUTING_KEY_AITA_EVENTS = "taskit.aita.events";
     // Routing Keys
     public static final String ROUTING_KEY_TASK_CREATED = "task.created";
     public static final String ROUTING_KEY_CHAT_CREATE = "chat.create";
     public static final String ROUTING_KEY_CHAT_DELETE = "chat.delete";
     public static final String ROUTING_KEY_PAYMENT_NOTIFY = "payment.task.accepted";
+
+    // AITA
+    @Bean
+    public TopicExchange aitaExchange() {
+        return new TopicExchange(AITA_EXCHANGE, true, false);
+    }
 
     // Exchange Beans
     @Bean
