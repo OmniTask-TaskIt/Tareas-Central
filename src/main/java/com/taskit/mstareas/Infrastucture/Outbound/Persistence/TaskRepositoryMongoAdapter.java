@@ -2,6 +2,7 @@ package com.taskit.mstareas.Infrastucture.Outbound.Persistence;
 
 import com.taskit.mstareas.Domain.Model.Task;
 import com.taskit.mstareas.Domain.Model.TaskCategory;
+import com.taskit.mstareas.Domain.Model.TaskPaymentStatus;
 import com.taskit.mstareas.Domain.Model.TaskStatus;
 import com.taskit.mstareas.Domain.Repository.TaskRepository;
 import com.taskit.mstareas.Infrastucture.Outbound.Persistence.DTO.TaskMongoDTO;
@@ -34,6 +35,7 @@ public class TaskRepositoryMongoAdapter implements TaskRepository {
                 .disputeReason(task.getDisputeReason())
                 .ownerApproval(task.isOwnerApproval())
                 .assigneeApproval(task.isAssigneeApproval())
+                .paymentStatus(task.getPaymentStatus() != null ? task.getPaymentStatus() : TaskPaymentStatus.UNPAID)
                 .build();
 
         TaskMongoDTO saved = taskRepositoryMongo.save(dto);
@@ -113,6 +115,7 @@ public class TaskRepositoryMongoAdapter implements TaskRepository {
                 .disputeReason(dto.getDisputeReason())
                 .ownerApproval(dto.isOwnerApproval())
                 .assigneeApproval(dto.isAssigneeApproval())
+                .paymentStatus(dto.getPaymentStatus() != null ? dto.getPaymentStatus() : TaskPaymentStatus.UNPAID)
                 .build();
     }
 }
