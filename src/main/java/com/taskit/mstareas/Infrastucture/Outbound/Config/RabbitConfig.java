@@ -2,49 +2,61 @@ package com.taskit.mstareas.Infrastucture.Outbound.Config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-
-
-
 @Configuration
 public class RabbitConfig {
-// --- AITA ---
+
+    // --- Exchange compartido (AITA + Payments + Auditoría) ---
     public static final String AITA_EXCHANGE = "taskit.events";
-    // Exchanges
+    public static final String TASKIT_EVENTS_EXCHANGE = AITA_EXCHANGE;
+    public static final String TASKIT_DLX_EXCHANGE = "taskit.dlx";
+
+    // Exchanges existentes
     public static final String TASK_EXCHANGE = "task.exchange";
     public static final String CHAT_EXCHANGE = "chat.exchange";
     public static final String PAYMENT_EXCHANGE = "payment.exchange";
 
-    // Queues
+    // Queues existentes
     public static final String TASK_CREATED_QUEUE = "task.created.queue";
     public static final String CHAT_CREATE_QUEUE = "chat.create.queue";
     public static final String CHAT_DELETE_QUEUE = "chat.delete.queue";
     public static final String PAYMENT_NOTIFY_QUEUE = "payment.notify.queue";
 
+    // Nuevas Queues para sincronización con Payment Service
+    public static final String TASKS_PAYMENT_QUEUE = "tasks.payment.events";
+    public static final String TASKS_PAYMENT_DLQ = "tasks.payment.events.dlq";
 
-    public static final String ROUTING_KEY_AITA_EVENTS = "taskit.aita.events";
     // Routing Keys
+    public static final String ROUTING_KEY_AITA_EVENTS = "taskit.aita.events";
+    public static final String ROUTING_KEY_TASK_EVENTS = "taskit.task.events";
+    public static final String ROUTING_KEY_PAYMENT_EVENTS = "taskit.payment.events";
     public static final String ROUTING_KEY_TASK_CREATED = "task.created";
     public static final String ROUTING_KEY_CHAT_CREATE = "chat.create";
     public static final String ROUTING_KEY_CHAT_DELETE = "chat.delete";
     public static final String ROUTING_KEY_PAYMENT_NOTIFY = "payment.task.accepted";
 
-    // AITA
+    // Exchange Beans
     @Bean
     public TopicExchange aitaExchange() {
         return new TopicExchange(AITA_EXCHANGE, true, false);
     }
 
-    // Exchange Beans
+    @Bean
+    public TopicExchange taskitDlxExchange() {
+        return new TopicExchange(TASKIT_DLX_EXCHANGE, true, false);
+    }
+
     @Bean
     public TopicExchange taskExchange() {
         return new TopicExchange(TASK_EXCHANGE);
@@ -81,9 +93,22 @@ public class RabbitConfig {
         return new Queue(PAYMENT_NOTIFY_QUEUE, true);
     }
 
+    @Bean
+    public Queue tasksPaymentQueue() {
+        return QueueBuilder.durable(TASKS_PAYMENT_QUEUE)
+                .withArgument("x-dead-letter-exchange", TASKIT_DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", TASKS_PAYMENT_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue tasksPaymentDlq() {
+        return QueueBuilder.durable(TASKS_PAYMENT_DLQ).build();
+    }
+
     // Bindings
     @Bean
-    public Binding taskCreatedBinding(Queue taskCreatedQueue, TopicExchange taskExchange) {
+    public Binding taskCreatedBinding(Queue taskCreatedQueue, @Qualifier("taskExchange") TopicExchange taskExchange) {
         return BindingBuilder.bind(taskCreatedQueue).to(taskExchange).with(ROUTING_KEY_TASK_CREATED);
     }
 
@@ -102,7 +127,21 @@ public class RabbitConfig {
         return BindingBuilder.bind(paymentNotifyQueue).to(paymentExchange).with(ROUTING_KEY_PAYMENT_NOTIFY);
     }
 
-    // Template & Converter Configuration
+    @Bean
+    public Binding tasksPaymentBinding(Queue tasksPaymentQueue, @Qualifier("aitaExchange") TopicExchange aitaExchange) {
+        return BindingBuilder.bind(tasksPaymentQueue)
+                .to(aitaExchange)
+                .with(ROUTING_KEY_PAYMENT_EVENTS);
+    }
+
+    @Bean
+    public Binding tasksPaymentDlqBinding(Queue tasksPaymentDlq,
+            @Qualifier("taskitDlxExchange") TopicExchange taskitDlxExchange) {
+        return BindingBuilder.bind(tasksPaymentDlq)
+                .to(taskitDlxExchange)
+                .with(TASKS_PAYMENT_DLQ);
+    }
+
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
@@ -114,5 +153,4 @@ public class RabbitConfig {
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
-
 }

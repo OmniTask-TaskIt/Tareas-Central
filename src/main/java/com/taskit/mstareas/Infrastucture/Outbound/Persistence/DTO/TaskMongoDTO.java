@@ -1,6 +1,7 @@
 package com.taskit.mstareas.Infrastucture.Outbound.Persistence.DTO;
 
 import com.taskit.mstareas.Domain.Model.TaskCategory;
+import com.taskit.mstareas.Domain.Model.TaskPaymentStatus;
 import com.taskit.mstareas.Domain.Model.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,4 +32,5 @@ public class TaskMongoDTO {
     private String disputeReason;
     private boolean ownerApproval;
     private boolean assigneeApproval;
+    private TaskPaymentStatus paymentStatus;
 }

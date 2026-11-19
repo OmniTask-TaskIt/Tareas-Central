@@ -21,5 +21,6 @@ public class Task {
     private String disputeReason;
     private boolean ownerApproval;
     private boolean assigneeApproval;
-    // private Location location;
+    @Builder.Default
+    private TaskPaymentStatus paymentStatus = TaskPaymentStatus.UNPAID;
 }
