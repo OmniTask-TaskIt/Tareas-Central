@@ -24,6 +24,7 @@ public class AcceptTaskImpl implements AcceptTaskUseCase {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
 
+        TaskStatus previousStatus = task.getTaskStatus();
         task.setTaskAssignee(taskAssignee);
         task.setTaskStatus(TaskStatus.ASSIGNED);
         Task savedTask = taskRepository.save(task);
@@ -32,15 +33,15 @@ public class AcceptTaskImpl implements AcceptTaskUseCase {
                 savedTask.getTaskId(),
                 savedTask.getTaskName(),
                 savedTask.getTaskOwner(),
-                savedTask.getTaskAssignee()
-        );
+                savedTask.getTaskAssignee());
 
         taskEventPublisher.notifyTaskAccepted(
                 savedTask.getTaskId(),
                 savedTask.getTaskOwner(),
                 savedTask.getTaskAssignee(),
-                savedTask.getPrice()
-        );
+                savedTask.getPrice());
+
+        taskEventPublisher.publishTaskStatusChanged(savedTask, previousStatus);
         return savedTask;
     }
 }

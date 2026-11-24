@@ -3,11 +3,14 @@ package com.taskit.mstareas.Application.Services;
 import com.taskit.mstareas.Application.Ports.Inbound.CompleteTaskUseCase;
 import com.taskit.mstareas.Application.Ports.Outbound.TaskEventPublisher;
 import com.taskit.mstareas.Domain.Model.Task;
+import com.taskit.mstareas.Domain.Model.TaskPaymentStatus;
 import com.taskit.mstareas.Domain.Model.TaskStatus;
 import com.taskit.mstareas.Domain.Repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CompleteTaskImpl implements CompleteTaskUseCase {
@@ -31,6 +34,8 @@ public class CompleteTaskImpl implements CompleteTaskUseCase {
             throw new IllegalArgumentException("User is not authorized to approve completion for this task");
         }
 
+        TaskStatus previousStatus = task.getTaskStatus();
+
         if (isOwner) {
             task.setOwnerApproval(true);
         }
@@ -39,12 +44,27 @@ public class CompleteTaskImpl implements CompleteTaskUseCase {
         }
 
         if (task.isOwnerApproval() && task.isAssigneeApproval()) {
+            if (task.getPaymentStatus() != TaskPaymentStatus.RETAINED) {
+                log.warn("[AUDIT][COMPLETE-BLOCKED] taskId={} userId={} paymentStatus={} (se requiere RETAINED)",
+                        taskId, userId, task.getPaymentStatus());
+                throw new IllegalStateException(
+                        "No se puede completar la tarea hasta que el pago esté retenido en Escrow.");
+            }
             task.setTaskStatus(TaskStatus.COMPLETED);
-            taskEventPublisher.deleteChat(taskId);
         } else if (task.isOwnerApproval() || task.isAssigneeApproval()) {
             task.setTaskStatus(TaskStatus.SEMI_COMPLETED);
         }
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        if (savedTask.getTaskStatus() != previousStatus) {
+            taskEventPublisher.publishTaskStatusChanged(savedTask, previousStatus);
+        }
+
+        if (savedTask.getTaskStatus() == TaskStatus.COMPLETED) {
+            taskEventPublisher.deleteChat(taskId);
+        }
+
+        return savedTask;
     }
 }
